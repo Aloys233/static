@@ -1,10 +1,10 @@
 #!/bin/bash
 # /usr/local/bin/welcome.sh
-# 彩虹渐变大字（新图案，一次性显示，快速打印）
+# 彩虹渐变大字（一次性输出，非逐行打印）
 
 clear
 
-# 彩虹渐变颜色（每行一种颜色即可，更快）
+# 彩虹渐变颜色（每行一种颜色）
 COLORS=(
   "\e[38;2;255;0;0m"     # 红
   "\e[38;2;255;127;0m"   # 橙
@@ -15,7 +15,7 @@ COLORS=(
 )
 RESET="\e[0m"
 
-# 新大字图案
+# 大字图案
 ASCII_ART=(
 "   █████████   ████                               ████████   ████████ "
 "  ███░░░░░███ ░░███                              ███░░░░███ ███░░░░███"
@@ -30,25 +30,25 @@ ASCII_ART=(
 "                               ░░░░░░                                  "
 )
 
-# 按行打印，每行不同颜色，快速显示
+# 先采集系统信息（避免中途打印），最后一次性输出
+CPU=$(top -bn1 | grep "Cpu(s)" | awk '{print $2+$4}')
+MEM=$(free -h | awk '/Mem:/ {print $3 "/" $2}')
+DISK=$(df -h / | awk 'NR==2 {print $3 "/" $2 " used (" $5 ")"}')
+UPTIME=$(uptime -p)
+
+# 构建输出缓冲区
+buf=""
 for i in "${!ASCII_ART[@]}"; do
-    color=${COLORS[$((i % ${#COLORS[@]}))]}
-    echo -e "${color}${ASCII_ART[$i]}${RESET}"
+  color=${COLORS[$((i % ${#COLORS[@]}))]}
+  buf+="${color}${ASCII_ART[$i]}${RESET}\n"
 done
 
-echo ""
-echo -e "\e[36m================= System Status =================\e[0m"
+buf+="\n\e[36m================= System Status =================\e[0m\n"
+buf+="CPU Usage: \e[33m${CPU}%\e[0m\n"
+buf+="Memory Usage: \e[32m${MEM}\e[0m\n"
+buf+="Disk Usage: \e[34m${DISK}\e[0m\n"
+buf+="Uptime: \e[35m${UPTIME}\e[0m\n"
+buf+="\e[36m=================================================\e[0m\n"
 
-CPU=$(top -bn1 | grep "Cpu(s)" | awk '{print $2+$4}')
-echo -e "CPU Usage: \e[33m$CPU%\e[0m"
-
-MEM=$(free -h | awk '/Mem:/ {print $3 "/" $2}')
-echo -e "Memory Usage: \e[32m$MEM\e[0m"
-
-DISK=$(df -h / | awk 'NR==2 {print $3 "/" $2 " used (" $5 ")"}')
-echo -e "Disk Usage: \e[34m$DISK\e[0m"
-
-UPTIME=$(uptime -p)
-echo -e "Uptime: \e[35m$UPTIME\e[0m"
-
-echo -e "\e[36m=================================================\e[0m"
+# 一次性打印，图案“瞬间”出现
+printf "%b" "$buf"
